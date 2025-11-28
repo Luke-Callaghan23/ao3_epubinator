@@ -258,7 +258,11 @@ pub fn sanitize_html (html: HTMLString) -> HTMLString {
         ("&lsaquo;"   , "&#8249;"), // single left-pointing angle quotation mark, U+2039 ISO proposed
         ("&rsaquo;"   , "&#8250;"), // single right-pointing angle quotation mark, U+203A ISO proposed
         ("&euro;"     , "&#8364;"), // euro sign, U+20AC NEW
-        ("<br>"       , "<br/>")
+
+        // AO3 sometimes spits out these tags without a terminator
+        // I guess modern HTML is able to handle them but EPUB cannot
+        ("<br>"       , "<br/>"),
+        ("<hr>"       , "<hr/>")
     ]);
 
     let mut html = html;

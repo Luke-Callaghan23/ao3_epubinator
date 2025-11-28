@@ -5,7 +5,7 @@ use askama::Template;
 use crate::{epub::file_templating::{category_index::{CategoryIndex, CategoryListing}, category_listing_index::CategoryListingIndex, content_opf::ContentOpf, index_index::IndexIndex, toc::TableOfContents, work::{chapter::WorkChapter, introduction::WorkIntroduction, preview::WorkPreview}, works_index::WorksIndex}, html::types::{Anchor, Category, Work}};
 
 
-pub fn write_epub_files(out_dir_path: &Path, out_name: &str, mut works: Vec<Work>) {
+pub fn write_epub_files(out_dir_path: &Path, out_name: &str, categories: &[Category], mut works: Vec<Work>) {
     // Assign correct playback ids to the works
     // Used in the table of contents page
     // Impossible to do within askama itself, so they need to be pre-computed
@@ -19,16 +19,6 @@ pub fn write_epub_files(out_dir_path: &Path, out_name: &str, mut works: Vec<Work
             running_play_order += 1;
         }
     }
-
-    
-    let categories = [
-        Category::Titles,
-        Category::Fandoms,
-        Category::Relationships,
-        Category::Characters,
-        Category::Tags,
-        Category::Authors
-    ];
 
     let mut all_xhtmls: Vec<String> = Vec::new();
 
@@ -64,7 +54,7 @@ pub fn write_epub_files(out_dir_path: &Path, out_name: &str, mut works: Vec<Work
     };
     fs::write(&works_index_path, works_index.render().unwrap().to_string()).expect("Error writing works_index.xhtml");
 
-    for category in &categories {
+    for category in &*categories {
         let mut listings: HashMap<String, CategoryListing> = HashMap::new();
 
         for work in &works {
@@ -112,6 +102,8 @@ pub fn write_epub_files(out_dir_path: &Path, out_name: &str, mut works: Vec<Work
             &format!("Error writing category index: {category}")[..]
         );
 
+        // Because each title is (most likely) unique, there does not need to be a listing page for that category
+        // The title index page will link directly to each work individually
         if *category != Category::Titles {
             for (_, subcategory_listing) in &listings {
                 let category_subcategory_path = indexes_path.join(

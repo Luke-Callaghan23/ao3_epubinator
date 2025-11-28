@@ -23,7 +23,7 @@ pub struct Work {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Anchor {
     pub name: String,
     pub link: String,

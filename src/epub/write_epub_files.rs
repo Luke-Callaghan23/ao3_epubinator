@@ -1,8 +1,26 @@
 use std::{collections::HashMap, fs, path::Path};
-
-use askama::Template;
-
 use crate::{epub::file_templating::{category_index::{CategoryIndex, CategoryListing}, category_listing_index::CategoryListingIndex, content_opf::ContentOpf, index_index::IndexIndex, toc::TableOfContents, work::{chapter::WorkChapter, introduction::WorkIntroduction, preview::WorkPreview}, works_index::WorksIndex}, html::types::{Anchor, Category, Work}};
+
+
+// Takes an askama template, writes it to the desired path, and expects all errors
+// SIDE EFFECT: if the write path is an xhtml, the path will be added to `&mut all_xhtmls`
+fn render_and_write <T: askama::Template> (path: &Path, all_xhtmls: &mut Vec<String>, template: T) {
+    fs::write(&path, template
+        .render()
+        .expect(
+            &format!("Error rendering template for {}", path.to_str().unwrap())[..]
+        )
+        .to_string()
+    ).expect(
+        &format!("Error writing rendered template for {}", path.to_str().unwrap())[..]
+    );
+
+    // Only add to the xhtmls vector if it is a .xhtml file
+    let path_str = String::from(path.to_str().unwrap());
+    if path_str.ends_with(".xhtml") {
+        all_xhtmls.push(path_str);
+    }
+}
 
 
 pub fn write_epub_files(out_dir_path: &Path, out_name: &str, categories: &[Category], mut works: Vec<Work>) {
@@ -20,6 +38,11 @@ pub fn write_epub_files(out_dir_path: &Path, out_name: &str, categories: &[Categ
         }
     }
 
+    // Every time we write an xhtml to the staging directory, we need to track that xhtml path
+    //      because content.opf will want a full log of all xhtmls in the ePub
+    // content.opf also specifies the order in which xhtmls will appear in the ePub,
+    //      so the order the xhtml paths get inserted into this list is also the order of the content
+    //      of this ePub
     let mut all_xhtmls: Vec<String> = Vec::new();
 
     // Used to lookup links to category index listing pages
@@ -34,91 +57,116 @@ pub fn write_epub_files(out_dir_path: &Path, out_name: &str, categories: &[Categ
 
     let indexes_path = out_dir_path.join("indexes");
 
-    let indexes_index_path = indexes_path.join("index_index.xhtml");
-    all_xhtmls.push(String::from(indexes_index_path.to_str().unwrap()));
+    // indexes/index_index.xhtml -> 
+    //      Index of the categories
+    render_and_write(
+        &indexes_path.join("index_index.xhtml"), 
+        &mut all_xhtmls, 
+        IndexIndex {
+            output_name: String::from(out_name),
+            categories: &categories,
+        }
+    );
 
-    let indexes_index = IndexIndex {
-        output_name: String::from(out_name),
-        categories: &categories,
-    };
-    fs::write(&indexes_index_path, indexes_index.render().unwrap().to_string()).expect("Error writing index_index.xhtml");
-
-
-    let works_index_path = indexes_path.join("works_index.xhtml");
-    all_xhtmls.push(String::from(works_index_path.to_str().unwrap()));
-
-    let works_index = WorksIndex {
-        output_name: String::from(out_name),
-        categories: &categories,
-        works: &works,
-    };
-    fs::write(&works_index_path, works_index.render().unwrap().to_string()).expect("Error writing works_index.xhtml");
+    // indexes/work_index.xhtml -> 
+    //      Index of all works and all of their chapters
+    render_and_write(
+        &indexes_path.join("works_index.xhtml"), 
+        &mut all_xhtmls, 
+        WorksIndex {
+            output_name: String::from(out_name),
+            categories: &categories,
+            works: &works,
+        }
+    );
 
     for category in &*categories {
+        // Accumulate listing of subcategories for each category
+        // Iterate over all the works and get all subcategories inside of this category
+        //      and store them as a CategoryListing
+        // When more than one work shares a category/sub-category, then add that work to the list
+        //      of works in that CategoryListing
+        // Accumulate all information in this hashmap
+        // Key is the link to the subcategory (subcategories are always of `Anchor` struct type, so they all have a link and a name)
+        // Value is the accumulated list of all works under the category/subcategory combination
         let mut listings: HashMap<String, CategoryListing> = HashMap::new();
 
         for work in &works {
+
+            // Extract subcategory list from this work for this category
             let work_category_entries = match category {
+                // Titles need to created on the spot using the work data itself
                 Category::Titles => &vec![Anchor { link: work.link.clone(), name: work.title.clone() }],
                 Category::Fandoms => &work.fandoms,
                 Category::Relationships => &work.relationships,
                 Category::Characters => &work.characters,
                 Category::Tags => &work.tags,
-                Category::Authors => &vec![Anchor { link: work.author.link.clone(), name: work.author.name.clone() }]
+                // Since there is only one author, just clone the author element and store inside of a vec
+                // (Because the rest of the function expects a vec)
+                // (Need to clone the author element because the expected type is Vec<Anchor>, not Vec<&Anchor>)
+                Category::Authors => &vec![ work.author.clone() ]
             };
 
+            // Check every subcategory in this work/category combination
             for work_category_entry in work_category_entries {
+                // If this subcategory was found already, add the work the accumulating list 
                 if let Some(existing_listing) = listings.get_mut(&work_category_entry.link) {
                     existing_listing.count += 1;
                     existing_listing.works.push(&work);
                 }
+                // Otherwise create a new CategoryListing object for the subcategory
                 else {
                     listings.insert(work_category_entry.link.clone(), CategoryListing { 
                         id: listings.len(), 
                         name: work_category_entry.name.clone(), 
                         count: 1,
-                        works: vec![ work ]
+                        works: vec![ &work ]
                     });
                 }
             }
         }
 
+        // Once all subcategory listings have been accumulated in the hashmap, translate
+        //      the hashmap into a list of just (references to) the values in the map
         let mut listing_info: Vec<&CategoryListing<'_>> = listings
-            .iter()
-            .map(| (_, listing) | listing)
+            .values()
             .collect();
 
+        // Then sort all the subcategories by how many works were in that subcategory, descending
         listing_info.sort_by(| a, b | b.count.cmp(&a.count));
 
-        let category_index = CategoryIndex {
-            category: category.to_string(),
-            categories: listing_info
-        };
-
-        let category_index_path = indexes_path.join(format!("{}/index.xhtml", category));
-        all_xhtmls.push(String::from(category_index_path.to_str().unwrap()));
-
-        fs::write(category_index_path, category_index.render().unwrap().to_string()).expect(
-            &format!("Error writing category index: {category}")[..]
+        // Write the category index
+        // Category index (indexes/<category>/index.xhtml) ->
+        //      List of all items in that category and the number of works with that item
+        //      Ordered by the number of works in the category item, descending
+        // Example: Fandoms: Overwatch (100), Supernatural (50), Pokemon (2)
+        render_and_write(
+            &indexes_path.join(format!("{}/index.xhtml", category)), 
+            &mut all_xhtmls, 
+            CategoryIndex {
+                category: category.to_string(),
+                categories: listing_info
+            }
         );
 
         // Because each title is (most likely) unique, there does not need to be a listing page for that category
         // The title index page will link directly to each work individually
         if *category != Category::Titles {
             for (_, subcategory_listing) in &listings {
-                let category_subcategory_path = indexes_path.join(
-                    format!("{category}/{category}-{}-listing.xhtml", subcategory_listing.id)
-                );
-                all_xhtmls.push(String::from(category_subcategory_path.to_str().unwrap()));
-    
-                let listing_page = CategoryListingIndex {
-                    category: category.to_string(),
-                    listing_name: &subcategory_listing.name,
-                    listing: &subcategory_listing.works
-                };
-    
-                fs::write(category_subcategory_path, listing_page.render().unwrap().to_string()).expect(
-                    &format!("Writing category {} listing {} ", category, subcategory_listing.name)[..]
+
+                // Write the category listing index
+                // Category listing index (indexes/<category>/<category>-<subcategory_id>-listing.xhtml) ->
+                //      List of all works inside of a subcategory inside of a category
+                //      No particular order
+                // Example: Fandoms -> Pokemon: "Gotta Catch 'Em All", "Who's that Pokemon?"
+                render_and_write(
+                    &indexes_path.join(format!("{category}/{category}-{}-listing.xhtml", subcategory_listing.id)), 
+                    &mut all_xhtmls, 
+                    CategoryListingIndex {
+                        category: category.to_string(),
+                        listing_name: &subcategory_listing.name,
+                        listing: &subcategory_listing.works
+                    }
                 );
             }
         }
@@ -128,6 +176,7 @@ pub fn write_epub_files(out_dir_path: &Path, out_name: &str, categories: &[Categ
 
     for work in &works {
 
+        // Make the folder where all the content for this work will be storeds
         let work_content_path = out_dir_path.join("content").join(
             format!("work-{}", work.id)
         );
@@ -135,57 +184,51 @@ pub fn write_epub_files(out_dir_path: &Path, out_name: &str, categories: &[Categ
             &format!("Creating content directory for work {}", work.id)[..]
         );
 
-        // Work Introduction
-        let work_intro_path = work_content_path.join(
-            format!("work-{}.xhtml", work.id)
-        );
-        all_xhtmls.push(String::from(work_intro_path.to_str().unwrap()));
-
-        let intro_page = WorkIntroduction::new(&work, &category_listings);
-        fs::write(work_intro_path, intro_page.render().unwrap().to_string()).expect(
-            &format!("Writing work {} introduction", work.id)[..]
+        // Work Introduction -> 
+        //      Listing of all categories and subcategories in this work
+        render_and_write(
+            &work_content_path.join(format!("work-{}.xhtml", work.id)), 
+            &mut all_xhtmls, 
+            WorkIntroduction::new(&work, &category_listings)
         );
 
-        // Work preview
-        let work_preview_path = work_content_path.join(
-            format!("work-{}-preview.xhtml", work.id)
-        );
-        all_xhtmls.push(String::from(work_preview_path.to_str().unwrap()));
-
-        let preview_page = WorkPreview { work: &work };
-        fs::write(work_preview_path, preview_page.render().unwrap().to_string()).expect(
-            &format!("Writing work {} introduction", work.id)[..]
+        // Work preview -> Summary
+        render_and_write(
+            &work_content_path.join(format!("work-{}-preview.xhtml", work.id)), 
+            &mut all_xhtmls, 
+            WorkPreview { work: &work }
         );
 
-        // Chapters
-        for (chapter_id, chapter) in work.chapters.iter().enumerate() {
-            let chapter_path = work_content_path.join(
-                format!("work-{}-chapter-{}.xhtml", work.id, chapter.order)
-            );
-            all_xhtmls.push(String::from(chapter_path.to_str().unwrap()));
-
-            let chapter_page = WorkChapter {  
-                work_author: &work.author,
-                work_title: &work.title,
-                chapter: &chapter,
-            };
-            fs::write(chapter_path, chapter_page.render().unwrap().to_string()).expect(
-                &format!("Writing work {} chapter {}", work.id, chapter_id)[..]
+        // Chapters -> 
+        //      Actual content of the work
+        for chapter in work.chapters.iter() {
+            render_and_write(
+                &work_content_path.join(format!("work-{}-chapter-{}.xhtml", work.id, chapter.order)), 
+                &mut all_xhtmls, 
+                WorkChapter {  
+                    work_author: &work.author,
+                    work_title: &work.title,
+                    chapter: &chapter,
+                }
             );
         }
     }
 
-    let toc = TableOfContents {
-        output_name: String::from(out_name),
-        categories: &categories,
-        works: &works
-    };
-    
-    let toc_file_path = out_dir_path.join("toc.ncx");
-    fs::write(&toc_file_path, toc.render().unwrap().to_string()).expect("Issue writing to file");
-    
+    // toc.ncx
+    render_and_write(
+        &out_dir_path.join("toc.ncx"), 
+        &mut all_xhtmls, 
+        TableOfContents {
+            output_name: String::from(out_name),
+            categories: &categories,
+            works: &works
+        }
+    );
 
-    let content_opf_path = out_dir_path.join("content.opf");
-    let content_opf = ContentOpf::new(String::from(out_name), all_xhtmls);
-    fs::write(&content_opf_path, content_opf.render().unwrap().to_string()).expect("Error while writing content.opf");
+    render_and_write(
+        &out_dir_path.join("content.opf"),
+        &mut Vec::new(),            // Rust borrow error thingy if you pass all_xhtmls here
+        ContentOpf::new(String::from(out_name), all_xhtmls)
+    );
+
 }

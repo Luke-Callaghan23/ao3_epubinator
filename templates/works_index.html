@@ -12,6 +12,35 @@
     <link rel="stylesheet" type="text/css" href="../page_styles.css" />
     <style type="text/css">
         span.sgc-1 {font-weight: normal; font-size: 26px;}
+        
+        ol {
+            list-style-type: none;
+            margin: 0 0 0 2em;
+            padding: 0 0 0 0;
+        }
+
+        ol li {
+            margin: 0 0 0 0;
+            padding: 0 0 0 0;
+        }
+        
+        ol li a {
+            margin: 0 0 0 0;
+            text-decoration: none;
+            color: black;
+            font-family: sans-serif;
+        }
+
+        ol li p {
+            margin: 0 0 0 0;
+            text-decoration: none;
+            color: black;
+            font-family: sans-serif;
+        }
+
+        #guide {
+            display: none;
+        }
     </style>
 </head>
 
@@ -44,10 +73,10 @@
                             <a href="../content/work-{{- work.id -}}/work-{{- work.id -}}.xhtml">{{- work.title | lower | capitalize -}}</a>
                             <ol>
                                 <li>
-                                    <a href="../content/work-{{- work.id -}}/work-{{- work.id -}}-preview.xhtml">{{- work.title | lower | capitalize -}} (Summary)</a>
+                                    <a href="../content/work-{{- work.id -}}/work-{{- work.id -}}.xhtml">{{- work.title | lower | capitalize}} (Summary)</a>
                                 </li>
                                 <li>
-                                    <p>Chapters</p>
+                                    <a href="../content/work-{{- work.id -}}/work-{{- work.id -}}-preview.xhtml">Chapters</a>
                                     <ol>
                                         {% for chapter in work.chapters %}
                                             <li>

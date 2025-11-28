@@ -5,8 +5,39 @@
     <meta content="ie=edge" http-equiv="x-ua-compatible" />
     <title>{{- work.title | lower | capitalize}} - {{work.author.name -}}</title>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <link rel="stylesheet" type="text/css" href="../../toc_sheet.css" />
     <link rel="stylesheet" type="text/css" href="../../stylesheet.css" />
     <link rel="stylesheet" type="text/css" href="../../page_styles.css" />
+    <style>
+        ol {
+            list-style-type: none;
+            margin: 0 0 0 2em;
+            padding: 0 0 0 0;
+        }
+
+        ol li {
+            margin: 0 0 0 0;
+            padding: 0 0 0 0;
+        }
+        
+        ol li a {
+            margin: 0 0 0 0;
+            text-decoration: none;
+            color: black;
+            font-family: sans-serif;
+        }
+
+        ol li p {
+            margin: 0 0 0 0;
+            text-decoration: none;
+            color: black;
+            font-family: sans-serif;
+        }
+
+        #guide {
+            display: none;
+        }
+    </style>
 </head>
 
 <body class="calibre">
@@ -22,6 +53,27 @@
             </blockquote>
         </div>
     </div>
+
+    
+    <div>
+        <a href="../content/work-{{- work.id -}}/work-{{- work.id -}}.xhtml">{{- work.title | lower | capitalize -}}</a>
+        <ol>
+            <li>
+                <a href="../content/work-{{- work.id -}}/work-{{- work.id -}}.xhtml">{{- work.title | lower | capitalize}} (Summary)</a>
+            </li>
+            <li>
+                <a href="../content/work-{{- work.id -}}/work-{{- work.id -}}-preview.xhtml">Chapters</a>
+                <ol>
+                    {% for chapter in work.chapters %}
+                        <li>
+                            <a href="../content/work-{{- work.id -}}/work-{{- work.id -}}-chapter-{{- chapter.order -}}.xhtml">{{- chapter.title -}}</a>
+                        </li>
+                    {% endfor %}
+                </ol>
+            </li>
+        </ol>
+    </div>
+
     <div class="userstuff1" id="chapters">
         <div class="calibre1">
             <div class="calibre8" id="calibre_pb_2"></div>

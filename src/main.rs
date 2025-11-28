@@ -25,7 +25,11 @@ struct Opt {
     output_file_name: String,
 
     #[structopt(short = "k", long = "keep_staging_dir", help="Flag to keep the ePub file staging directory specified by --output argument.  Default is false since it mostly just takes up space after the ePub is generated.")]
-    keep_staging_dir: bool
+    keep_staging_dir: bool,
+
+    #[structopt(short = "y", long = "yes", help="Flag to say yess to deleting old staging directory without being prompted")]
+    automatically_delete_staging_dir: bool
+
 }
 
 
@@ -33,6 +37,7 @@ fn main() -> Result<(), std::io::Error> {
     let opt = Opt::from_args();
     let root = opt.dir;
     let keep_staging_dir = opt.keep_staging_dir;
+    let automatically_delete_staging_dir = opt.automatically_delete_staging_dir;
     
     let program_name = env::args().next().unwrap();
     
@@ -54,7 +59,7 @@ fn main() -> Result<(), std::io::Error> {
     // The ePub has an initial directory structure that needs to initalized before we start writing
     //      custom content (see 'copy_dir' in the root of the repo)
     // Initialize `out_dir_path` with 'copy_dir' contents (programmatically) before continuing
-    initialize_fs::initialize_filesystem_for_epub(&program_name, out_dir_path, &categories);
+    initialize_fs::initialize_filesystem_for_epub(&program_name, out_dir_path, &categories, automatically_delete_staging_dir);
 
     // Process AO3 HTML files and store necessary data in internal structure
     print!("Ingesting AO3 HTMLs . . . ");

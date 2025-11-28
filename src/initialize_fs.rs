@@ -129,20 +129,21 @@ fn toc_sheet_css () -> &'static str {
 r#"
 /* NAVIGATION */
 
-nav ol {
+ol {
     list-style-type: none;
     margin: 0 0 0 2em;
     padding: 0 0 0 0;
 }
 
-nav ol li {
+ol li {
     margin: 0 0 0 0;
     padding: 0 0 0 0;
 }
 
-nav ol li a {
+ol li a {
     text-decoration: none;
     color: black;
+    background-color: red;
     font-family: sans-serif;
 }
 
@@ -152,28 +153,34 @@ nav ol li a {
 "#
 }
 
-pub fn initialize_filesystem_for_epub (program_name: &String, out_dir_path: &Path, categories: &[Category]) {
+pub fn initialize_filesystem_for_epub (program_name: &String, out_dir_path: &Path, categories: &[Category], automatically_delete_staging_dir: bool) {
 
     // First make sure that the path doesn't exist already
     // ao3_epubinator expects `out_dir_path` to be a staging directory for the program to copy files into and we don't want to collide with
     //      any of the user's files if that directory already exists
     if fs::exists(out_dir_path).expect("Checking existence") {
-        let mut input=String::new();
+        
+        let mut input = String::new();
+        let response = if !automatically_delete_staging_dir {
 
-        // If it exists, prompt the user to delete it
-        print!("WARNING: Output directory specified by '--output' option already exists.  \n'{program_name}' expects directory --output directory (you put '{}') to not exist.\nIs it okay to delete {} before continuing? [y/n]: ", out_dir_path.to_str().unwrap(), out_dir_path.to_str().unwrap());
-        stdout().flush().expect("Failed to flush stdout");
+            // If it exists, prompt the user to delete it
+            print!("WARNING: Output directory specified by '--output' option already exists.  \n'{program_name}' expects directory --output directory (you put '{}') to not exist.\nIs it okay to delete {} before continuing? [y/n]: ", out_dir_path.to_str().unwrap(), out_dir_path.to_str().unwrap());
+            stdout().flush().expect("Failed to flush stdout");
+    
+            stdin().read_line(&mut input).expect("Failed to read user input");
+            input.trim()
+        }
+        // If automatically_delete_staging_dir, skip asking the user, and pretend their response was "y"
+        else { "y" };
 
-        stdin().read_line(&mut input).expect("Failed to read user input");
-        let input = input.trim();
-        if input.len() == 1 && input.chars().next().unwrap() == 'y' {
+        if response.len() == 1 && response.chars().next().unwrap() == 'y' {
             print!("Deleting old data . . . ");
             std::io::stdout().flush().expect("Failed to flush stdout"); 
             fs::remove_dir_all(out_dir_path).expect("Deleting directory");
             println!("Done.");
         }
         else {
-            println!("You entered '{input}' which does not match 'y'.  Exiting . . . ");
+            println!("You entered '{response}' which does not match 'y'.  Exiting . . . ");
             exit(1);
         }
     }

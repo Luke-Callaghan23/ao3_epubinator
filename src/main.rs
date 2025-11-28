@@ -65,7 +65,8 @@ fn main() -> Result<(), std::io::Error> {
     // Write the ePub files to `out_dir_path`
     print!("Writing epub files . . . ");
     std::io::stdout().flush().expect("Failed to flush stdout"); 
-    epub::write_epub_files::write_epub_files(out_dir_path, &out_name, &categories, works);
+    let mut epub_writer = epub::write_epub_files::EpubWriter::new();
+    epub_writer.write_epub_files(out_dir_path, &out_name, &categories, works);
     println!("Done.");
 
     // Zip everything together

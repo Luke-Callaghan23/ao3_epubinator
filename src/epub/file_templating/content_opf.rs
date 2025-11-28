@@ -8,7 +8,7 @@ pub struct ContentOpf {
 }
 
 impl ContentOpf {
-    pub fn new(output_name: String, xhtmls: Vec<String>) -> Self {
+    pub fn new(output_name: String, xhtmls: &Vec<String>) -> Self {
 
         // Remove "output_name/" from the beginning of each xhtml path
         // These paths are created relative to the working directory, but when we add them

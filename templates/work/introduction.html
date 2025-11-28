@@ -1,0 +1,74 @@
+<?xml version='1.0' encoding='utf-8'?>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+
+<head>
+    <meta content="ie=edge" http-equiv="x-ua-compatible" />
+    <title>{{- work.title | lower | capitalize}} - {{work.author.name -}}</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <link rel="stylesheet" type="text/css" href="../../stylesheet.css" />
+    <link rel="stylesheet" type="text/css" href="../../page_styles.css" />
+</head>
+
+<body class="calibre">
+    <div id="preface" class="calibre1">
+        <h2 class="toc-heading" id="calibre_toc_2">Preface</h2>
+
+        <p class="message">
+            <b class="calibre2">{{- work.title | lower | capitalize -}}</b><br class="calibre1" />
+            Posted originally on the <a href="http://archiveofourown.org/">Archive of Our Own</a> at 
+                <a href="{{- work.link -}}">{{- work.link -}}</a>.
+        </p>
+
+        <div class="calibre1">
+            <dl class="tags">
+                <dt class="calibre3">Archive Warning:</dt>
+                <dt class="calibre3">Fandom:</dt>
+                <dd class="calibre4">
+                    {% for fandom in epub_fandoms_links %}
+                        <a href="{{- fandom.link -}}">{{- fandom.name -}}</a>
+                        {% if !loop.last %}
+                            ,
+                        {% endif %}
+                    {% endfor %}
+                </dd>
+                <dt class="calibre3">Relationships:</dt>
+                <dd class="calibre4">
+                    {% for relationship in epub_relationships_links %}
+                        <a href="{{- relationship.link -}}">{{- relationship.name -}}</a>
+                        {% if !loop.last %}
+                            ,
+                        {% endif %}
+                    {% endfor %}
+                </dd>
+                <dt class="calibre3">Characters:</dt>
+                <dd class="calibre4">
+                    {% for character in epub_characters_links %}
+                        <a href="{{- character.link -}}">{{- character.name -}}</a>
+                        {% if !loop.last %}
+                            ,
+                        {% endif %}
+                    {% endfor %}
+                </dd>
+                <dt class="calibre3">Additional Tags:</dt>
+                <dd class="calibre4">
+                    {% for tag in epub_tags_links %}
+                        <a href="{{- tag.link -}}">{{- tag.name -}}</a>
+                        {% if !loop.last %}
+                            ,
+                        {% endif %}
+                    {% endfor %}
+                </dd>
+
+                <dt class="calibre3">Language:</dt>
+                <dd class="calibre4">English</dd>
+
+                <dt class="calibre3">Stats:</dt>
+                <dd class="calibre5">Words: {{work.wc -}}</dd>
+            </dl>
+        </div>
+    </div>
+
+
+</body>
+
+</html>

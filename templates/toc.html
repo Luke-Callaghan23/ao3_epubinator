@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1">
+
+    <head>
+        <meta name="dtb:depth" content="3" />
+        <meta name="dtb:generator" content="calibre (6.13.0)" />
+        <meta name="dtb:totalPageCount" content="0" />
+        <meta name="dtb:maxPageNumber" content="0" />
+    </head>
+    <docTitle>
+        <text>{{ output_name | lower | capitalize }}</text>
+    </docTitle>
+    {% let play_order_start = 1 %}
+    <navMap>
+        <navPoint id="index" playOrder="{{- play_order_start -}}">
+            <navLabel>
+                <text>Index</text>
+            </navLabel>
+            <content src="indexes/index_index.xhtml" />
+            {% for category in categories %}
+                <navPoint id="index-title" playOrder="{{- play_order_start + loop.index -}}">
+                    <navLabel>
+                        <text>{{category.to_string() | lower | capitalize -}}</text>
+                    </navLabel>
+                    <content src="indexes/{{- category -}}/index.xhtml"/>
+                </navPoint>
+            {% endfor %}
+        </navPoint>
+        {% let work_index_order = play_order_start + categories.len() + 1 %}
+        <navPoint id="works_index" playOrder="{{- work_index_order -}}">
+            <navLabel>
+                <text>Works Index</text>
+            </navLabel>
+            <content src="indexes/works_index.xhtml" />
+            
+            {% let work_order_start = play_order_start + categories.len() + 2 %}
+            {% for work in works %}
+                <navPoint id="id{{- work_order_start + work.playback_id -}}" playOrder="{{- work_order_start + work.playback_id -}}">
+                    <navLabel><text>{{- work.title -}}</text></navLabel>
+                    <content src="content/work-{{- work.id -}}/work-{{- work.id -}}.xhtml" />
+                    {% for chapter in work.chapters %}
+                        <navPoint id="id{{- work_order_start + chapter.playback_id -}}" playOrder="{{- work_order_start + chapter.playback_id -}}">
+                            <navLabel><text>{{- chapter.title | lower | capitalize -}}</text></navLabel>
+                            <content src="content/work-{{- work.id -}}/work-{{- work.id -}}-chapter-{{- loop.index0 -}}.xhtml" />
+                        </navPoint>
+                    {% endfor %}
+                </navPoint>
+            {% endfor %}
+        </navPoint>
+    </navMap>
+</ncx>

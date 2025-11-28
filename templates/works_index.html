@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" xmlns:m="http://www.w3.org/1998/Math/MathML" xmlns:pls="http://www.w3.org/2005/01/pronunciation-lexicon" xmlns:ssml="http://www.w3.org/2001/10/synthesis" xmlns:svg="http://www.w3.org/2000/svg">
+<head>
+    <meta content="ie=edge" http-equiv="x-ua-compatible" />
+    <title>{{- output_name | lower | capitalize -}}</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <link rel="stylesheet" type="text/css" href="../toc_sheet.css" />
+    <link rel="stylesheet" type="text/css" href="../stylesheet.css" />
+    <link rel="stylesheet" type="text/css" href="../page_styles.css" />
+    <style type="text/css">
+        span.sgc-1 {font-weight: normal; font-size: 26px;}
+    </style>
+</head>
+
+<head>
+</head>
+
+<body>
+    <h1 id="heading_id_2"><span class="sgc-1">Table of Contents</span><br /></h1>
+
+    <div class="toc">
+        <ol>
+            <li>
+                <a href="../indexes/index_index.xhtml">Index</a>
+                <ol>
+                    {% for category in categories %}
+                        <li>
+                            <a href="../indexes/{{- category -}}/index.xhtml">
+                                {{category.to_string() | lower | capitalize -}}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ol>
+            </li>
+
+            <li>
+                <a href="../indexes/works_index.xhtml">Works</a>
+                <ol>
+                    {% for work in works %}
+                        <li>
+                            <a href="../content/work-{{- work.id -}}/work-{{- work.id -}}.xhtml">{{- work.title | lower | capitalize -}}</a>
+                            <ol>
+                                <li>
+                                    <a href="../content/work-{{- work.id -}}/work-{{- work.id -}}-preview.xhtml">{{- work.title | lower | capitalize -}} (Summary)</a>
+                                </li>
+                                <li>
+                                    <p>Chapters</p>
+                                    <ol>
+                                        {% for chapter in work.chapters %}
+                                            <li>
+                                                <a href="../content/work-{{- work.id -}}/work-{{- work.id -}}-chapter-{{- chapter.order -}}.xhtml">{{- chapter.title -}}</a>
+                                            </li>
+                                        {% endfor %}
+                                    </ol>
+                                </li>
+                            </ol>
+                        </li>
+                    {% endfor %}
+                </ol>
+            </li>
+        </ol>
+    </div>
+</body>
+</html>

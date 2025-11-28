@@ -1,0 +1,32 @@
+<?xml version='1.0' encoding='utf-8'?>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+
+<head>
+    <meta content="ie=edge" http-equiv="x-ua-compatible" />
+    <title>Index > {{category | lower | capitalize}}</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <link rel="stylesheet" type="text/css" href="../../stylesheet.css" />
+    <link rel="stylesheet" type="text/css" href="../../page_styles.css" />
+</head>
+
+<body class="calibre">
+    <div id="preface" class="calibre1">
+        <h2 class="toc-heading" id="calibre_toc_2">Index > {{category | lower | capitalize}}: </h2>
+        <h2>Index > {{category | lower | capitalize}}: </h2>
+        <div class="calibre1">
+            <ul>
+                {% if category != "titles" %}
+                    {% for item in categories %}
+                        <li><a href="../../indexes/{{- category -}}/{{- category -}}-{{- item.id -}}-listing.xhtml">{{- item.name | lower | capitalize}} ({{ item.count -}})</a></li>
+                    {% endfor %}
+                {% else %}
+                    {% for item in categories %}
+                        <li><a href="../../content/work-{{- item.works[0].id -}}/work-{{- item.works[0].id -}}.xhtml">{{- item.works[0].title | lower | capitalize}}</a></li>
+                    {% endfor %}
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+</body>
+
+</html>

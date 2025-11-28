@@ -1,0 +1,25 @@
+<?xml version='1.0' encoding='utf-8'?>
+<package xmlns="http://www.idpf.org/2007/opf" version="2.0" unique-identifier="uuid_id">
+    <metadata xmlns:opf="http://www.idpf.org/2007/opf" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:calibre="http://calibre.kovidgoyal.net/2009/metadata">
+        <dc:title>{{- output_name | lower | capitalize -}}</dc:title>
+        <meta name="calibre:timestamp" content="2025-11-20T08:55:23.061476+00:00"/>
+        <dc:language>en</dc:language>
+        <dc:identifier id="uuid_id" opf:scheme="uuid">71ab0208-2809-4dcf-bfcc-5b752b7d668e</dc:identifier>
+        <meta name="calibre:title_sort" content="{{- output_name | lower -}}"/>
+        <dc:publisher>Archive of Our Own</dc:publisher>
+        <dc:date>2025-11-13T00:00:00+00:00</dc:date>
+    </metadata>
+    <manifest>
+        {% for xhtml in xhtmls %}
+            <item id="html{{- xhtmls.len() - loop.index -}}" href="{{- xhtml -}}" media-type="application/xhtml+xml"/>
+        {% endfor %}
+        <item id="page_css" href="page_styles.css" media-type="text/css"/>
+        <item id="css" href="stylesheet.css" media-type="text/css"/>
+        <item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>
+    </manifest>
+    <spine toc="ncx">
+        {% for xhtml in xhtmls %}
+            <itemref idref="html{{- xhtmls.len() - loop.index -}}"/>
+        {% endfor %}
+    </spine>
+</package>

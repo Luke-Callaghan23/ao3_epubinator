@@ -6,12 +6,7 @@ pub type HTMLString = String;
 
 pub enum Work {
     Single(WorkStruct),
-    Series {
-        title: String,
-        link: String,
-        playback_id: usize,
-        works: Vec<WorkStruct>
-    }
+    Series(WorkSeries, Vec<WorkStruct>)
 }
 
 
@@ -26,6 +21,15 @@ pub struct WorkStruct {
     pub summary: HTMLString,
     pub author: Author,
     pub chapters: Vec<Chapter>,
+}
+
+
+pub struct WorkSeries {
+    pub id: usize,
+    pub title: String,
+    pub link: String,
+    pub author: Author,
+    pub playback_id: usize,
 }
 
 #[derive(Debug, Clone)]

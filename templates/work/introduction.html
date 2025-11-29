@@ -21,66 +21,92 @@
 
         <div class="calibre1">
             <dl class="tags">
-                <dt class="calibre3">Ratings:</dt>
-                <dd class="calibre4">
-                    {% for rating in epub_ratings_links %}
-                        <a href="{{- rating.link -}}">{{- rating.name -}}</a>
-                        {% if !loop.last %}
-                            ,
-                        {% endif %}
-                    {% endfor %}
-                </dd>
-                <dt class="calibre3">Categories:</dt>
-                <dd class="calibre4">
-                    {% for category in epub_categories_links %}
-                        <a href="{{- category.link -}}">{{- category.name -}}</a>
-                        {% if !loop.last %}
-                            ,
-                        {% endif %}
-                    {% endfor %}
-                </dd>
-                <dt class="calibre3">Fandom:</dt>
-                <dd class="calibre4">
-                    {% for fandom in epub_fandoms_links %}
-                        <a href="{{- fandom.link -}}">{{- fandom.name -}}</a>
-                        {% if !loop.last %}
-                            ,
-                        {% endif %}
-                    {% endfor %}
-                </dd>
-                <dt class="calibre3">Relationships:</dt>
-                <dd class="calibre4">
-                    {% for relationship in epub_relationships_links %}
-                        <a href="{{- relationship.link -}}">{{- relationship.name -}}</a>
-                        {% if !loop.last %}
-                            ,
-                        {% endif %}
-                    {% endfor %}
-                </dd>
-                <dt class="calibre3">Characters:</dt>
-                <dd class="calibre4">
-                    {% for character in epub_characters_links %}
-                        <a href="{{- character.link -}}">{{- character.name -}}</a>
-                        {% if !loop.last %}
-                            ,
-                        {% endif %}
-                    {% endfor %}
-                </dd>
-                <dt class="calibre3">Additional Tags:</dt>
-                <dd class="calibre4">
-                    {% for tag in epub_tags_links %}
-                        <a href="{{- tag.link -}}">{{- tag.name -}}</a>
-                        {% if !loop.last %}
-                            ,
-                        {% endif %}
-                    {% endfor %}
-                </dd>
+                {% if epub_ratings_links.len() > 0 %}
+                    <dt class="calibre3">Ratings:</dt>
+                    <dd class="calibre4">
+                        {% for rating in epub_ratings_links %}
+                            <a href="{{- rating.link -}}">{{- rating.name -}}</a>
+                            {% if !loop.last %}
+                                ,
+                            {% endif %}
+                        {% endfor %}
+                    </dd>
+                {% endif %}
+                {% if epub_categories_links.len() > 0 %}
+                    <dt class="calibre3">Categories:</dt>
+                    <dd class="calibre4">
+                        {% for category in epub_categories_links %}
+                            <a href="{{- category.link -}}">{{- category.name -}}</a>
+                            {% if !loop.last %}
+                                ,
+                            {% endif %}
+                        {% endfor %}
+                    </dd>
+                {% endif %}
+                {% if epub_fandoms_links.len() > 0 %}
+                    <dt class="calibre3">Fandom:</dt>
+                    <dd class="calibre4">
+                        {% for fandom in epub_fandoms_links %}
+                            <a href="{{- fandom.link -}}">{{- fandom.name -}}</a>
+                            {% if !loop.last %}
+                                ,
+                            {% endif %}
+                        {% endfor %}
+                    </dd>
+                {% endif %}
+                {% if epub_relationships_links.len() > 0 %}
+                    <dt class="calibre3">Relationships:</dt>
+                    <dd class="calibre4">
+                        {% for relationship in epub_relationships_links %}
+                            <a href="{{- relationship.link -}}">{{- relationship.name -}}</a>
+                            {% if !loop.last %}
+                                ,
+                            {% endif %}
+                        {% endfor %}
+                    </dd>
+                {% endif %}
+                {% if epub_characters_links.len() > 0 %}
+                    <dt class="calibre3">Characters:</dt>
+                    <dd class="calibre4">
+                        {% for character in epub_characters_links %}
+                            <a href="{{- character.link -}}">{{- character.name -}}</a>
+                            {% if !loop.last %}
+                                ,
+                            {% endif %}
+                        {% endfor %}
+                    </dd>
+                {% endif %}
+                {% if epub_tags_links.len() > 0 %}
+                    <dt class="calibre3">Additional Tags:</dt>
+                    <dd class="calibre4">
+                        {% for tag in epub_tags_links %}
+                            <a href="{{- tag.link -}}">{{- tag.name -}}</a>
+                            {% if !loop.last %}
+                                ,
+                            {% endif %}
+                        {% endfor %}
+                    </dd>
+                {% endif %}
 
                 <dt class="calibre3">Language:</dt>
                 <dd class="calibre4">English</dd>
 
                 <dt class="calibre3">Stats:</dt>
                 <dd class="calibre5">Words: {{work.wc -}}</dd>
+
+                {% if let Some((series, work_structs)) = series_info %}
+                    <hr />
+                    <div class="calibre3">
+                        This work is part {{work.series.as_ref().unwrap().part_number}} of series '<a href="../../content/series/series-{{- series.id -}}.xhtml">{{- series.title | lower | capitalize -}}</a>'
+                    </div>
+                    <ol>
+                        {% for work in work_structs %}
+                            <li>
+                                <a href="../../content/work-{{- work.id -}}/work-{{- work.id -}}.xhtml">Part {{work.series.as_ref().unwrap().part_number}}: {{work.title | lower | capitalize -}}</a>
+                            </li>
+                        {% endfor %}
+                    </ol>
+                {% endif %}
             </dl>
         </div>
     </div>

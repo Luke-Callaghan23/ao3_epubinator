@@ -1,0 +1,69 @@
+<?xml version='1.0' encoding='utf-8'?>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+
+<head>
+    <meta content="ie=edge" http-equiv="x-ua-compatible" />
+    <title>{{- series.title | lower | capitalize}} - {{series.author.name -}}</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <link rel="stylesheet" type="text/css" href="../../../toc_sheet.css" />
+    <link rel="stylesheet" type="text/css" href="../../../stylesheet.css" />
+    <link rel="stylesheet" type="text/css" href="../../../page_styles.css" />
+    <style>
+        ol {
+            list-style-type: none;
+            margin: 0 0 0 2em;
+            padding: 0 0 0 0;
+        }
+
+        ol li {
+            margin: 0 0 0 0;
+            padding: 0 0 0 0;
+        }
+        
+        ol li a {
+            margin: 0 0 0 0;
+            text-decoration: none;
+            color: black;
+            font-family: sans-serif;
+        }
+
+        ol li p {
+            margin: 0 0 0 0;
+            text-decoration: none;
+            color: black;
+            font-family: sans-serif;
+        }
+
+        #guide {
+            display: none;
+        }
+    </style>
+</head>
+
+<body class="calibre">
+    <div id="preface" class="calibre1">
+        <div class="calibre1">
+            <h1 class="calibre6" id="calibre_pb_1">Series: {{series.title | lower | capitalize -}}</h1>
+            <div class="byline">
+                by <a href="{{- series.author.link -}}" rel="author">{{- series.author.name -}}</a>
+            </div>
+            
+            Posted originally on the <a href="http://archiveofourown.org/">Archive of Our Own</a> at 
+                <a href="{{- series.link -}}">{{- series.link -}}</a>.
+        </div>
+    </div>
+
+    <div>
+        <h2>Index: </h2>
+        <ol>
+            {% for work in works %}
+                <li>
+                    <a href="../../content/work-{{- work.id -}}/work-{{- work.id -}}.xhtml">Part {{work.series.as_ref().unwrap().part_number}}: {{work.title | lower | capitalize -}}</a>
+                </li>
+            {% endfor %}
+        </ol>
+    </div>
+
+</body>
+
+</html>

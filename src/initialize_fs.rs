@@ -212,6 +212,10 @@ pub fn initialize_filesystem_for_epub (program_name: &String, out_dir_path: &Pat
     let content_dir = out_dir_path.join("content");
     make_dir(&content_dir);
 
+    // Content/series folder
+    let series_dir = content_dir.join("series");
+    make_dir(&series_dir);
+
     // Indexes folder
     let indexes_dir = out_dir_path.join("indexes");
     make_dir(&indexes_dir);

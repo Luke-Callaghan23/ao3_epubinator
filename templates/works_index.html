@@ -69,24 +69,53 @@
                 <a href="../indexes/works_index.xhtml">Works</a>
                 <ol>
                     {% for work in works %}
-                        <li>
-                            <a href="../content/work-{{- work.id -}}/work-{{- work.id -}}.xhtml">{{- work.title | lower | capitalize -}}</a>
-                            <ol>
-                                <li>
-                                    <a href="../content/work-{{- work.id -}}/work-{{- work.id -}}.xhtml">{{- work.title | lower | capitalize}} (Summary)</a>
-                                </li>
-                                <li>
-                                    <a href="../content/work-{{- work.id -}}/work-{{- work.id -}}-preview.xhtml">Chapters</a>
-                                    <ol>
-                                        {% for chapter in work.chapters %}
-                                            <li>
-                                                <a href="../content/work-{{- work.id -}}/work-{{- work.id -}}-chapter-{{- chapter.order -}}.xhtml">{{- chapter.title -}}</a>
-                                            </li>
-                                        {% endfor %}
-                                    </ol>
-                                </li>
-                            </ol>
-                        </li>
+                        {% if let Work::Single(work) = work %}
+                            <li>
+                                <a href="../content/work-{{- work.id -}}/work-{{- work.id -}}.xhtml">{{- work.title | lower | capitalize -}}</a>
+                                <ol>
+                                    <li>
+                                        <a href="../content/work-{{- work.id -}}/work-{{- work.id -}}.xhtml">{{- work.title | lower | capitalize}} (Summary)</a>
+                                    </li>
+                                    <li>
+                                        <a href="../content/work-{{- work.id -}}/work-{{- work.id -}}-preview.xhtml">Chapters</a>
+                                        <ol>
+                                            {% for chapter in work.chapters %}
+                                                <li>
+                                                    <a href="../content/work-{{- work.id -}}/work-{{- work.id -}}-chapter-{{- chapter.order -}}.xhtml">{{- chapter.title -}}</a>
+                                                </li>
+                                            {% endfor %}
+                                        </ol>
+                                    </li>
+                                </ol>
+                            </li>
+                        {% endif %}
+                        {% if let Work::Series(series, works) = work %}
+                            <li>
+                                <a href="../content/series/series-{{- series.id -}}.xhtml">Series: {{ series.title | lower | capitalize -}}</a>
+                                <ol>
+                                    {% for work in works %}
+                                        <li>
+                                            <a href="../content/work-{{- work.id -}}/work-{{- work.id -}}.xhtml">{{- work.title | lower | capitalize -}}</a>
+                                            <ol>
+                                                <li>
+                                                    <a href="../content/work-{{- work.id -}}/work-{{- work.id -}}.xhtml">{{- work.title | lower | capitalize}} (Summary)</a>
+                                                </li>
+                                                <li>
+                                                    <a href="../content/work-{{- work.id -}}/work-{{- work.id -}}-preview.xhtml">Chapters</a>
+                                                    <ol>
+                                                        {% for chapter in work.chapters %}
+                                                            <li>
+                                                                <a href="../content/work-{{- work.id -}}/work-{{- work.id -}}-chapter-{{- chapter.order -}}.xhtml">{{- chapter.title -}}</a>
+                                                            </li>
+                                                        {% endfor %}
+                                                    </ol>
+                                                </li>
+                                            </ol>
+                                        </li>
+                                    {% endfor %}
+                                </ol>
+                            </li>
+                        {% endif %}
                     {% endfor %}
                 </ol>
             </li>

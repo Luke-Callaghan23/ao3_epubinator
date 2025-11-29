@@ -1,5 +1,5 @@
 use std::{collections::HashMap, fs, path::Path};
-use crate::{epub::file_templating::{category_index::{CategoryIndex, CategoryListing}, category_listing_index::CategoryListingIndex, content_opf::ContentOpf, index_index::IndexIndex, toc::TableOfContents, work::{chapter::WorkChapter, introduction::WorkIntroduction, preview::WorkPreview}, works_index::WorksIndex}, html::types::{Anchor, Category, Work, WorkStruct}};
+use crate::{epub::file_templating::{category_index::{CategoryIndex, CategoryListing}, category_listing_index::CategoryListingIndex, content_opf::ContentOpf, index_index::IndexIndex, toc::TableOfContents, work::{chapter::WorkChapter, introduction::WorkIntroduction, preview::WorkPreview, series::SeriesTemplate}, works_index::WorksIndex}, html::types::{Anchor, Category, Work, WorkSeries, WorkStruct}};
 
 pub struct EpubWriter {
     // Every time we write an xhtml to the staging directory, we need to track that xhtml path
@@ -48,6 +48,42 @@ impl EpubWriter {
         }
     }
 
+    fn write_work_struct (&mut self, work: &WorkStruct, out_dir_path: &Path, category_listings: &HashMap<Category, HashMap<String, CategoryListing>>, series: Option<(&WorkSeries, &Vec<WorkStruct>)>) {
+        // Make the folder where all the content for this work will be storeds
+        let work_content_path = out_dir_path.join("content").join(
+            format!("work-{}", work.id)
+        );
+        fs::create_dir(&work_content_path).expect(
+            &format!("Creating content directory for work {}", work.id)[..]
+        );
+
+        // Work Introduction -> 
+        //      Listing of all categories and subcategories in this work
+        self.render_and_write(
+            &work_content_path.join(format!("work-{}.xhtml", work.id)), 
+            WorkIntroduction::new(&work, &category_listings, series)
+        );
+
+        // Work preview -> Summary
+        self.render_and_write(
+            &work_content_path.join(format!("work-{}-preview.xhtml", work.id)), 
+            WorkPreview { work: &work }
+        );
+
+        // Chapters -> 
+        //      Actual content of the work
+        for chapter in work.chapters.iter() {
+            self.render_and_write(
+                &work_content_path.join(format!("work-{}-chapter-{}.xhtml", work.id, chapter.order)), 
+                WorkChapter {  
+                    work_author: &work.author,
+                    work_title: &work.title,
+                    chapter: &chapter,
+                }
+            );
+        }
+    }
+
     pub fn write_epub_files(&mut self, out_dir_path: &Path, out_name: &str, categories: &[Category], mut works: Vec<Work>) {
         // Assign correct playback ids to the works
         // Used in the table of contents page
@@ -58,8 +94,8 @@ impl EpubWriter {
                 Work::Single(work_struct) => {
                     EpubWriter::assign_playback_to_work_struct(&mut running_play_order, work_struct);
                 },
-                Work::Series { link, title, playback_id, works } => {
-                    *playback_id = running_play_order;
+                Work::Series(ser, works) => {
+                    ser.playback_id = running_play_order;
                     running_play_order += 1;
 
                     works.iter_mut().for_each(| work_struct | {
@@ -106,9 +142,7 @@ impl EpubWriter {
         for work in &works {
             match work {
                 Work::Single(ws) => work_structs.push(ws),
-                Work::Series { 
-                    title, link, playback_id, works 
-                } => works.iter().for_each(| ws | {
+                Work::Series(_, works) => works.iter().for_each(| ws | {
                     work_structs.push(ws);
                 }),
             }
@@ -204,41 +238,28 @@ impl EpubWriter {
             category_listings.insert(category.clone(), listings);
         }
     
-        for work in &work_structs {
-    
-            // Make the folder where all the content for this work will be storeds
-            let work_content_path = out_dir_path.join("content").join(
-                format!("work-{}", work.id)
-            );
-            fs::create_dir(&work_content_path).expect(
-                &format!("Creating content directory for work {}", work.id)[..]
-            );
-    
-            // Work Introduction -> 
-            //      Listing of all categories and subcategories in this work
-            self.render_and_write(
-                &work_content_path.join(format!("work-{}.xhtml", work.id)), 
-                WorkIntroduction::new(&work, &category_listings)
-            );
-    
-            // Work preview -> Summary
-            self.render_and_write(
-                &work_content_path.join(format!("work-{}-preview.xhtml", work.id)), 
-                WorkPreview { work: &work }
-            );
-    
-            // Chapters -> 
-            //      Actual content of the work
-            for chapter in work.chapters.iter() {
-                self.render_and_write(
-                    &work_content_path.join(format!("work-{}-chapter-{}.xhtml", work.id, chapter.order)), 
-                    WorkChapter {  
-                        work_author: &work.author,
-                        work_title: &work.title,
-                        chapter: &chapter,
+        for work in &works {
+            match work {
+                Work::Series(work_series, work_structs) => {
+
+                    // For series, write the series page
+                    self.render_and_write(
+                        &out_dir_path.join("content").join("series").join(format!("series-{}.xhtml", work_series.id)), 
+                        SeriesTemplate {
+                            series: work_series,
+                            works: work_structs
+                        }
+                    );
+
+                    // Then all the works write after it
+                    for work_struct in work_structs {
+                        self.write_work_struct(work_struct, out_dir_path, &category_listings, Some((work_series, work_structs)));
                     }
-                );
+                },
+                // For single works, just write the work normally
+                Work::Single(work_struct) => self.write_work_struct(work_struct, out_dir_path, &category_listings, None),
             }
+            
         }
     
         // toc.ncx

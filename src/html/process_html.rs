@@ -131,7 +131,7 @@ fn process_html (doc: Html, id: usize) -> WorkStruct {
             }
         }
 
-        if tag_container_child.inner_html() == "Series: " {
+        if tag_container_child.inner_html().trim() == "Series:" {
             let mut tmp_vec = Vec::new();
             process_anchors(tag_container_child, &mut tmp_vec);
             let anchor =  tmp_vec.into_iter().next().unwrap();
@@ -139,7 +139,7 @@ fn process_html (doc: Html, id: usize) -> WorkStruct {
             let part_text = element_ref_next_element_sibling(tag_container_child).unwrap().inner_html();
             let part_number_str = part_regex
                 .captures(&part_text)
-                .and_then(| a | a.name("wc"))
+                .and_then(| a | a.name("part"))
                 .and_then(| mt | Some(mt.as_str()))
                 .unwrap()
             ;
@@ -219,7 +219,7 @@ pub fn process_ao3_htmls (root: &str) -> Result<Vec<Work>, Error> {
         },
     };
     
-    let works: Vec<WorkStruct> = entries.enumerate().filter_map(| (index, entry) | {
+    let work_structs: Vec<WorkStruct> = entries.enumerate().filter_map(| (index, entry) | {
         let dirent = match entry {
             Ok(dirent) => dirent,
             Err(err) => {
@@ -263,38 +263,50 @@ pub fn process_ao3_htmls (root: &str) -> Result<Vec<Work>, Error> {
         (None, Vec::new())
     ]);
 
-    works.into_iter().for_each(| work_struct | {
+    let mut series_data: HashMap<String, WorkSeries> = HashMap::new();
+
+    work_structs.into_iter().for_each(| work_struct | {
         match &work_struct.series {
             Some(series) => {
-                let works = series_map.get_mut(&Some(series.name.clone()));
+                let works = series_map.get_mut(&Some(series.link.clone()));
                 if let Some(works) = works {
                     works.push(work_struct);
                 }
                 else {
-                    series_map.insert(Some(series.name.clone()), vec![ work_struct ]);
+                    let series_link = series.link.clone();
+                    series_data.insert(series_link, WorkSeries { 
+                        id: series_data.len(),
+                        title: series.name.clone(), 
+                        link: series.link.clone(), 
+                        author: work_struct.author.clone(), 
+                        playback_id: 0
+                    });
+                    series_map.insert(Some(series.link.clone()), vec![ work_struct ]);
                 }
             },
             None => series_map.get_mut(&None).unwrap().push(work_struct),
         };
     });
 
+
     let mut works: Vec<Work> = Vec::new();
 
-    series_map.into_iter().for_each(| (series, work_structs) | {
-        if let Some(_) = series {
+    series_map.into_iter().for_each(| (series, mut work_structs) | {
+        if let Some(series_link) = series {
             if work_structs.len() == 1 {
-                work_structs.into_iter().map(| work | {
+                work_structs.into_iter().for_each(| work | {
                     works.push(Work::Single(work));
                 });
             }
             else {
-                let first = work_structs.iter().next().unwrap().series.as_ref().unwrap();
-                works.push(Work::Series {
-                    playback_id: 0,
-                    title: first.name.clone(),
-                    link: first.link.clone(),
-                    works: work_structs
-                });
+                work_structs.sort_by(| a, b | 
+                    a.series.as_ref().unwrap().part_number.cmp(&b.series.as_ref().unwrap().part_number
+                ));
+
+                works.push(Work::Series (
+                    series_data.remove(&series_link).unwrap(),
+                    work_structs
+                ));
             }
         }
         else {
@@ -302,6 +314,20 @@ pub fn process_ao3_htmls (root: &str) -> Result<Vec<Work>, Error> {
                 works.push(Work::Single(work));
             });
         }
+    });
+
+    works.sort_by(| a, b | {
+        let a_title = &match &a {
+            Work::Single(work_struct) => &work_struct.title,
+            Work::Series(work_series, _) => &work_series.title,
+        };
+
+        let b_title = &match &b {
+            Work::Single(work_struct) => &work_struct.title,
+            Work::Series(work_series, _) => &work_series.title,
+        };
+
+        return a_title.cmp(b_title);
     });
 
     return Ok(works);

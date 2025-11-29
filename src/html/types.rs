@@ -4,9 +4,18 @@ use derivative::Derivative;
 
 pub type HTMLString = String;
 
-#[derive(Derivative)]
-#[derivative(Debug)]
-pub struct Work {
+pub enum Work {
+    Single(WorkStruct),
+    Series {
+        title: String,
+        link: String,
+        playback_id: usize,
+        works: Vec<WorkStruct>
+    }
+}
+
+
+pub struct WorkStruct {
     pub id: usize,
     pub playback_id: usize,
     pub title: String,
@@ -14,12 +23,10 @@ pub struct Work {
     pub category_data: HashMap<Category, Vec<Anchor>>,
     pub series: Option<Series>,
     pub wc: String,             // string because AO3 gives us the word count with commas, and that is convenient
-    #[derivative(Debug(format_with = "html_formatter"))]
     pub summary: HTMLString,
     pub author: Author,
     pub chapters: Vec<Chapter>,
 }
-
 
 #[derive(Debug, Clone)]
 pub struct Anchor {
@@ -29,7 +36,7 @@ pub struct Anchor {
 
 pub type Author = Anchor;
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 #[allow(unused)]
 pub struct Series {
     pub name: String,

@@ -5,7 +5,7 @@ pub struct CategoryListing <'a> {
     pub id: usize,
     pub name: String,
     pub count: usize,
-    pub works: Vec<&'a Work>,
+    pub works: Vec<&'a WorkStruct>,
 }
 
 #[derive(Template)]

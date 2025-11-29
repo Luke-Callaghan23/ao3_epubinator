@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use askama::Template;
-use crate::{epub::file_templating::category_index::CategoryListing, html::types::{Anchor, Category, Work}};
+use crate::{epub::file_templating::category_index::CategoryListing, html::types::{Anchor, Category, WorkStruct}};
 
 #[derive(Template)]
 #[template(path = "work/introduction.html")]
@@ -12,13 +12,13 @@ pub struct WorkIntroduction <'a> {
     pub epub_relationships_links: Vec<Anchor>,
     pub epub_characters_links: Vec<Anchor>,
     pub epub_tags_links: Vec<Anchor>,
-    pub work: &'a Work,
+    pub work: &'a WorkStruct,
 }
 
 impl <'a> WorkIntroduction <'a> {
-    pub(crate) fn new(work: &&'a Work, category_listings: &'a HashMap<Category, HashMap<String, CategoryListing>>) -> Self {
+    pub(crate) fn new(work: &&'a WorkStruct, category_listings: &'a HashMap<Category, HashMap<String, CategoryListing>>) -> Self {
 
-        let epub_link_from_category = | work: &Work, category: Category | -> Vec<Anchor> {
+        let epub_link_from_category = | work: &WorkStruct, category: Category | -> Vec<Anchor> {
             work.category_data.get(&category).unwrap().iter().map(| anchor | {
                 let listing_map = category_listings.get(&category).unwrap();
                 let listing_id = listing_map.get(&anchor.link).unwrap().id;

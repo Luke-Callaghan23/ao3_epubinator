@@ -1,6 +1,5 @@
 use lazy_static::lazy_static;
 use std::{collections::HashMap, fs::{read_dir, read_to_string}, io::Error, path::Path};
-
 use regex::Regex;
 use scraper::{Html, Selector, ElementRef};
 use crate::html::{sanitize_html::sanitize_html, types::*};
@@ -79,7 +78,7 @@ fn process_anchors <'a> (dt: ElementRef<'a>, anchors: &mut Vec<Anchor>) {
 }
 
 
-fn process_html (doc: Html, id: usize) -> Work {
+fn process_html (doc: Html, id: usize) -> WorkStruct {
     lazy_static! {
         static ref title_selector:                   Selector = Selector::parse("p.message b").unwrap();
         static ref link_selector:                    Selector = Selector::parse("p.message a:nth-of-type(2)").unwrap();
@@ -195,7 +194,7 @@ fn process_html (doc: Html, id: usize) -> Work {
     }
 
     
-    return Work {
+    return WorkStruct {
         id: id,
         playback_id: 0,
         title,
@@ -219,48 +218,93 @@ pub fn process_ao3_htmls (root: &str) -> Result<Vec<Work>, Error> {
             return Err(err);
         },
     };
-
-    Ok(
-        entries.enumerate().filter_map(| (index, entry) | {
-            let dirent = match entry {
-                Ok(dirent) => dirent,
-                Err(err) => {
-                    eprintln!("Could not read dir entry at index {index} from {} (Skipping): {err}", path.as_os_str().display());
-                    return None;
-                },
-            };
-        
-            match dirent.metadata() {
-                Ok(metadata) => {
-                    if (
-                        dirent.file_name().as_os_str().to_str().unwrap().ends_with(".html") 
-                        && (metadata.is_file() || metadata.is_symlink())
-                    ) {
-                        Some(dirent.path())
-                    }
-                    else { None }
-                },
-                Err(err) => {
-                    eprintln!("Could not read metadata of dir entry at index {index} from {} (Skipping): {err}", path.as_os_str().display());
-                    return None;
-                }
-            }
-        })
-        .enumerate()
-        .filter_map(| (index, path) | {
-            let doc_str = match read_to_string(&path) {
-                Ok(doc_str) => doc_str,
-                Err(err) => {
-                    eprintln!("Error reading file {} (skipping): {err}", path.as_os_str().display());
-                    return None;
-                },
-            };
     
-            let doc = Html::parse_document(&doc_str[..]);
-            Some(process_html(doc, index))
-        })
-        .collect()
-    )
+    let works: Vec<WorkStruct> = entries.enumerate().filter_map(| (index, entry) | {
+        let dirent = match entry {
+            Ok(dirent) => dirent,
+            Err(err) => {
+                eprintln!("Could not read dir entry at index {index} from {} (Skipping): {err}", path.as_os_str().display());
+                return None;
+            },
+        };
+    
+        match dirent.metadata() {
+            Ok(metadata) => {
+                if (
+                    dirent.file_name().as_os_str().to_str().unwrap().ends_with(".html") 
+                    && (metadata.is_file() || metadata.is_symlink())
+                ) {
+                    Some(dirent.path())
+                }
+                else { None }
+            },
+            Err(err) => {
+                eprintln!("Could not read metadata of dir entry at index {index} from {} (Skipping): {err}", path.as_os_str().display());
+                return None;
+            }
+        }
+    })
+    .enumerate()
+    .filter_map(| (index, path) | {
+        let doc_str = match read_to_string(&path) {
+            Ok(doc_str) => doc_str,
+            Err(err) => {
+                eprintln!("Error reading file {} (skipping): {err}", path.as_os_str().display());
+                return None;
+            },
+        };
+
+        let doc = Html::parse_document(&doc_str[..]);
+        Some(process_html(doc, index))
+    })
+    .collect();
+
+    let mut series_map: HashMap<Option<String>, Vec<WorkStruct>> = HashMap::from([
+        (None, Vec::new())
+    ]);
+
+    works.into_iter().for_each(| work_struct | {
+        match &work_struct.series {
+            Some(series) => {
+                let works = series_map.get_mut(&Some(series.name.clone()));
+                if let Some(works) = works {
+                    works.push(work_struct);
+                }
+                else {
+                    series_map.insert(Some(series.name.clone()), vec![ work_struct ]);
+                }
+            },
+            None => series_map.get_mut(&None).unwrap().push(work_struct),
+        };
+    });
+
+    let mut works: Vec<Work> = Vec::new();
+
+    series_map.into_iter().for_each(| (series, work_structs) | {
+        if let Some(_) = series {
+            if work_structs.len() == 1 {
+                work_structs.into_iter().map(| work | {
+                    works.push(Work::Single(work));
+                });
+            }
+            else {
+                let first = work_structs.iter().next().unwrap().series.as_ref().unwrap();
+                works.push(Work::Series {
+                    playback_id: 0,
+                    title: first.name.clone(),
+                    link: first.link.clone(),
+                    works: work_structs
+                });
+            }
+        }
+        else {
+            return work_structs.into_iter().for_each(| work | {
+                works.push(Work::Single(work));
+            });
+        }
+    });
+
+    return Ok(works);
 }
 
 
@@ -276,5 +320,5 @@ pub fn process_ao3_html (html_path: &str) -> Result<Work, Error> {
     };
 
     let doc = Html::parse_document(&doc_str[..]);
-    Ok(process_html(doc, 0))
+    Ok(Work::Single( process_html(doc, 0) ))
 }

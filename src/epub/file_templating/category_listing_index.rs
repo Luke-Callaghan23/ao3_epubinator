@@ -6,5 +6,5 @@ use crate::html::types::*;
 pub struct CategoryListingIndex <'a> {
     pub category: String,
     pub listing_name: &'a String,
-    pub listing: &'a Vec<&'a Work>
+    pub listing: &'a Vec<&'a WorkStruct>
 }

@@ -1,5 +1,5 @@
 use std::{collections::HashMap, fs, path::Path};
-use crate::{epub::file_templating::{category_index::{CategoryIndex, CategoryListing}, category_listing_index::CategoryListingIndex, content_opf::ContentOpf, index_index::IndexIndex, toc::TableOfContents, work::{chapter::WorkChapter, introduction::WorkIntroduction, preview::WorkPreview}, works_index::WorksIndex}, html::types::{Anchor, Category, Work}};
+use crate::{epub::file_templating::{category_index::{CategoryIndex, CategoryListing}, category_listing_index::CategoryListingIndex, content_opf::ContentOpf, index_index::IndexIndex, toc::TableOfContents, work::{chapter::WorkChapter, introduction::WorkIntroduction, preview::WorkPreview}, works_index::WorksIndex}, html::types::{Anchor, Category, Work, WorkStruct}};
 
 pub struct EpubWriter {
     // Every time we write an xhtml to the staging directory, we need to track that xhtml path
@@ -38,18 +38,34 @@ impl EpubWriter {
         }
     }
 
+    fn assign_playback_to_work_struct (running_play_order: &mut usize, work: &mut WorkStruct) {
+        work.playback_id = *running_play_order;
+        *running_play_order += 1;
+
+        for chapter in &mut work.chapters {
+            chapter.playback_id = *running_play_order;
+            *running_play_order += 1;
+        }
+    }
+
     pub fn write_epub_files(&mut self, out_dir_path: &Path, out_name: &str, categories: &[Category], mut works: Vec<Work>) {
         // Assign correct playback ids to the works
         // Used in the table of contents page
         // Impossible to do within askama itself, so they need to be pre-computed
         let mut running_play_order = 0;
         for work in &mut works {
-            work.playback_id = running_play_order;
-            running_play_order += 1;
-    
-            for chapter in &mut work.chapters {
-                chapter.playback_id = running_play_order;
-                running_play_order += 1;
+            match work {
+                Work::Single(work_struct) => {
+                    EpubWriter::assign_playback_to_work_struct(&mut running_play_order, work_struct);
+                },
+                Work::Series { link, title, playback_id, works } => {
+                    *playback_id = running_play_order;
+                    running_play_order += 1;
+
+                    works.iter_mut().for_each(| work_struct | {
+                        EpubWriter::assign_playback_to_work_struct(&mut running_play_order, work_struct);
+                    });
+                },
             }
         }
     
@@ -85,6 +101,18 @@ impl EpubWriter {
                 works: &works,
             }
         );
+
+        let mut work_structs: Vec<&WorkStruct> = Vec::new();
+        for work in &works {
+            match work {
+                Work::Single(ws) => work_structs.push(ws),
+                Work::Series { 
+                    title, link, playback_id, works 
+                } => works.iter().for_each(| ws | {
+                    work_structs.push(ws);
+                }),
+            }
+        }
     
         for category in &*categories {
             // Accumulate listing of subcategories for each category
@@ -96,8 +124,8 @@ impl EpubWriter {
             // Key is the link to the subcategory (subcategories are always of `Anchor` struct type, so they all have a link and a name)
             // Value is the accumulated list of all works under the category/subcategory combination
             let mut listings: HashMap<String, CategoryListing> = HashMap::new();
-    
-            for work in &works {
+
+            for work in &work_structs {
     
                 // Extract subcategory list from this work for this category
                 let work_category_entries = match category {
@@ -176,7 +204,7 @@ impl EpubWriter {
             category_listings.insert(category.clone(), listings);
         }
     
-        for work in &works {
+        for work in &work_structs {
     
             // Make the folder where all the content for this work will be storeds
             let work_content_path = out_dir_path.join("content").join(

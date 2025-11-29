@@ -21,7 +21,24 @@
 
         <div class="calibre1">
             <dl class="tags">
-                <dt class="calibre3">Archive Warning:</dt>
+                <dt class="calibre3">Ratings:</dt>
+                <dd class="calibre4">
+                    {% for rating in epub_ratings_links %}
+                        <a href="{{- rating.link -}}">{{- rating.name -}}</a>
+                        {% if !loop.last %}
+                            ,
+                        {% endif %}
+                    {% endfor %}
+                </dd>
+                <dt class="calibre3">Categories:</dt>
+                <dd class="calibre4">
+                    {% for category in epub_categories_links %}
+                        <a href="{{- category.link -}}">{{- category.name -}}</a>
+                        {% if !loop.last %}
+                            ,
+                        {% endif %}
+                    {% endfor %}
+                </dd>
                 <dt class="calibre3">Fandom:</dt>
                 <dd class="calibre4">
                     {% for fandom in epub_fandoms_links %}

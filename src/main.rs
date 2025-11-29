@@ -43,6 +43,8 @@ fn main() -> Result<(), std::io::Error> {
     
     let categories = [
         Category::Titles,
+        Category::Ratings,
+        Category::Categories,
         Category::Fandoms,
         Category::Relationships,
         Category::Characters,

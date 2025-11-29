@@ -103,14 +103,12 @@ impl EpubWriter {
                 let work_category_entries = match category {
                     // Titles need to created on the spot using the work data itself
                     Category::Titles => &vec![Anchor { link: work.link.clone(), name: work.title.clone() }],
-                    Category::Fandoms => &work.fandoms,
-                    Category::Relationships => &work.relationships,
-                    Category::Characters => &work.characters,
-                    Category::Tags => &work.tags,
                     // Since there is only one author, just clone the author element and store inside of a vec
                     // (Because the rest of the function expects a vec)
                     // (Need to clone the author element because the expected type is Vec<Anchor>, not Vec<&Anchor>)
-                    Category::Authors => &vec![ work.author.clone() ]
+                    Category::Authors => &vec![ work.author.clone() ],
+
+                    _ => work.category_data.get(&category).unwrap(),
                 };
     
                 // Check every subcategory in this work/category combination

@@ -1,5 +1,5 @@
 use lazy_static::lazy_static;
-use std::{fs::{read_dir, read_to_string}, io::Error, path::Path};
+use std::{collections::HashMap, fs::{read_dir, read_to_string}, io::Error, path::Path};
 
 use regex::Regex;
 use scraper::{Html, Selector, ElementRef};
@@ -54,19 +54,18 @@ fn finish_chapter (order: usize, title: String, summary: Option<String>, elt: El
         order: order,
         title: String::from(title.trim()),
         summary: sanitize_html(summary.unwrap_or(String::from("No Summary"))),
-        data: sanitize_html(String::from(data.trim()))
+        data: sanitize_html(String::from(data.trim())),
     }
 }
 
 
 
 
-fn process_anchors <'a> (dt: ElementRef<'a>) -> Vec<Anchor> {
+fn process_anchors <'a> (dt: ElementRef<'a>, anchors: &mut Vec<Anchor>) {
     lazy_static! {
         static ref anchor_selector: Selector = Selector::parse("a").unwrap();
     };
 
-    let mut anchors: Vec<Anchor> = Vec::new();
     let anchor_elts = element_ref_next_element_sibling(dt)
         .unwrap()
         .select(&anchor_selector);
@@ -77,12 +76,6 @@ fn process_anchors <'a> (dt: ElementRef<'a>) -> Vec<Anchor> {
             name: String::from(anchor_elt.inner_html().trim()),
         })
     }
-    return anchors;
-}
-
-struct WorkAnchor <'a> {
-    regex: &'a Regex,
-    vec: Option<Vec<Anchor>>
 }
 
 
@@ -96,6 +89,8 @@ fn process_html (doc: Html, id: usize) -> Work {
         static ref single_chapter_header_selector:   Selector = Selector::parse("#chapters > h2").unwrap();
         static ref multi_chapters_headers_selector:  Selector = Selector::parse("#chapters > div.meta.group").unwrap();
         
+        static ref categories_regex:       Regex = Regex::new("(Category|Categories):").unwrap();
+        static ref ratings_regex:          Regex = Regex::new("Ratings?:").unwrap();
         static ref fandoms_regex:          Regex = Regex::new("Fandoms?:").unwrap();
         static ref relationships_regex:    Regex = Regex::new("Relationships?:").unwrap();
         static ref characters_regex:       Regex = Regex::new("Characters?:").unwrap();
@@ -108,27 +103,39 @@ fn process_html (doc: Html, id: usize) -> Work {
     let title = doc.select(&title_selector).next().unwrap().inner_html();
     let link = doc.select(&link_selector).next().unwrap().inner_html();
     
-    let mut search: [WorkAnchor; 4] = [
-        WorkAnchor { regex: &fandoms_regex, vec: None },
-        WorkAnchor { regex: &relationships_regex, vec: None },
-        WorkAnchor { regex: &characters_regex, vec: None },
-        WorkAnchor { regex: &additional_tags_regex, vec: None }
-    ];
+    let mut category_data: HashMap<Category, Vec<Anchor>> = HashMap::from([
+        (Category::Ratings,        Vec::new()),
+        (Category::Categories,     Vec::new()),
+        (Category::Fandoms,        Vec::new()),
+        (Category::Relationships,  Vec::new()),
+        (Category::Characters,     Vec::new()),
+        (Category::Tags,           Vec::new()),
+    ]);
+
+    let regexes: HashMap<Category, &Regex> = HashMap::from([
+        (Category::Ratings,        &*ratings_regex),
+        (Category::Categories,     &*categories_regex),
+        (Category::Fandoms,        &*fandoms_regex),
+        (Category::Relationships,  &*relationships_regex),
+        (Category::Characters,     &*characters_regex),
+        (Category::Tags,           &*additional_tags_regex),
+    ]);
 
     let mut series: Option<Series> = None;
     let mut wc: Option<String> = None;
 
     let tag_container = doc.select(&tag_container_selector).next().unwrap();
     for tag_container_child in tag_container.child_elements() {
-        for index in 0usize..search.len() {
-            let anchor: &mut WorkAnchor = &mut search[index];
-            if anchor.regex.is_match(&tag_container_child.inner_html()[..]) {
-                anchor.vec = Some(process_anchors(tag_container_child));
+        for (category, regex) in regexes.iter() {
+            if regex.is_match(&tag_container_child.inner_html()[..]) {
+                process_anchors(tag_container_child, category_data.get_mut(category).unwrap());
             }
         }
 
         if tag_container_child.inner_html() == "Series: " {
-            let anchor = process_anchors(tag_container_child).into_iter().next().unwrap();
+            let mut tmp_vec = Vec::new();
+            process_anchors(tag_container_child, &mut tmp_vec);
+            let anchor =  tmp_vec.into_iter().next().unwrap();
 
             let part_text = element_ref_next_element_sibling(tag_container_child).unwrap().inner_html();
             let part_number_str = part_regex
@@ -193,10 +200,7 @@ fn process_html (doc: Html, id: usize) -> Work {
         playback_id: 0,
         title,
         link,
-        fandoms: std::mem::take(&mut search[0].vec).unwrap_or(vec![]),
-        relationships: std::mem::take(&mut search[1].vec).unwrap_or(vec![]),
-        characters: std::mem::take(&mut search[2].vec).unwrap_or(vec![]),
-        tags: std::mem::take(&mut search[3].vec).unwrap_or(vec![]),
+        category_data,
         series,
         wc: wc.unwrap_or(String::from("Unknown")),
         summary: sanitize_html(summary),
